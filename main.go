@@ -1,38 +1,51 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"context"
+	"domolitom/microservices/handlers"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
-	// reqeusts to the path /goodbye with be handled by this function
-	http.HandleFunc("/goodbye", func(http.ResponseWriter, *http.Request) {
-		log.Println("Goodbye World")
-	})
 
-	// any other request will be handled by this function
-	http.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		log.Println("Running Hello Handler")
+	hh := handlers.NewHello(log.New(os.Stdout, "product-api", log.LstdFlags))
+	gh := handlers.NewBye(log.New(os.Stdout, "product-api", log.LstdFlags))
+	sm := http.NewServeMux()
+	sm.Handle("/", hh)
+	sm.Handle("/bye", gh)
 
-		// read the body
-		b, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Println("Error reading body", err)
-
-			http.Error(rw, "Unable to read request body", http.StatusBadRequest)
-			return
-		}
-
-		// write the response
-		fmt.Fprintf(rw, "Hello %s", b)
-	})
+	server := &http.Server{
+		Addr:         ":9090",
+		Handler:      sm,
+		ReadTimeout:  1 * time.Second,
+		WriteTimeout: 1 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 
 	// Listen for connections on all ip addresses (0.0.0.0)
 	// port 9090
 	log.Println("Starting Server")
-	err := http.ListenAndServe(":9090", nil)
-	log.Fatal(err)
+
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	sig := <-sigChan
+	log.Println("Received terminate, graceful shutdown", sig)
+
+	tCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	server.Shutdown(tCtx)
+
 }
