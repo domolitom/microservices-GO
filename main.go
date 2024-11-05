@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"domolitom/microservices/handlers"
 	"log"
 	"net/http"
 	"os"
@@ -13,9 +12,7 @@ import (
 
 func main() {
 
-	th := handlers.NewTestHandler(log.New(os.Stdout, "product-api", log.LstdFlags))
 	sm := http.NewServeMux()
-	sm.Handle("/test/test/test", th)
 
 	server := &http.Server{
 		Addr:         ":9090",
