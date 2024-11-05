@@ -14,11 +14,9 @@ import (
 func main() {
 
 	hh := handlers.NewHello(log.New(os.Stdout, "product-api", log.LstdFlags))
-	gh := handlers.NewBye(log.New(os.Stdout, "product-api", log.LstdFlags))
 	th := handlers.NewTestHandler(log.New(os.Stdout, "product-api", log.LstdFlags))
 	sm := http.NewServeMux()
 	sm.Handle("/", hh)
-	sm.Handle("/bye", gh)
 	sm.Handle("/test/test/test", th)
 
 	server := &http.Server{
